@@ -1,4 +1,4 @@
-![alt text](https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.flaticon.com%2Ffree-icon%2Fquantitative_1465900&psig=AOvVaw2C-aaqdcMMFRwXQNcOitqL&ust=1610640508693000&source=images&cd=vfe&ved=0CAIQjRxqFwoTCOiu6cylme4CFQAAAAAdAAAAABAD) # Quantitative Finance:
+![alt text](https://github.com/datadoctor100/quantitative_finance/blob/qfi.jpg?raw=true) # Quantitative Finance:
 
 ## Algorithmic Trading in Python-
 
