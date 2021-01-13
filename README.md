@@ -1,4 +1,4 @@
-![alt text](https://github.com/datadoctor100/quantitative_finance/blob/qfi.jpg?raw=true) # Quantitative Finance:
+![alt text](https://github.com/datadoctor100/quantitative_finance/blob/master/qfi.jpg?raw=true) # Quantitative Finance:
 
 ## Algorithmic Trading in Python-
 
