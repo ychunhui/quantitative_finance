@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon Jan 20 12:00:00 2022
+Created on Mon Jan 21 12:00:00 2022
 
 @author: operator
 """
@@ -114,20 +114,26 @@ out1['dt'] = out1.dt.apply(lambda x: time.mktime(x.timetuple()))
 
 for nm, grp in out1.groupby('ticker'):
     
-    xtrain = grp['2018':][['dt', 'price']]
-    ytrain = grp['2018':]['pos']
+    try:
+        
+        xtrain = grp['2018':][['dt', 'price']]
+        ytrain = grp['2018':]['pos']
     
-    xval = grp['2018':][['dt', 'price']]
-    yval = grp['2018':]['pos']
+        xval = grp[:'2018'][['dt', 'price']]
+        yval = grp[:'2018']['pos']
     
-    m = XGBClassifier(random_state = 100)
-    m.fit(xtrain, ytrain)
+        m = XGBClassifier(random_state = 100)
+        m.fit(xtrain, ytrain)
     
-    preds = m.predict(xval)
+        preds = m.predict(xval)
     
-    score = metrics.accuracy_score(preds, yval)
+        score = metrics.accuracy_score(preds, yval)
     
-    print(f'Model Evaluation for {nm}- {round(score, 2) * 100}%')
-    print('AUC for Model-')
-    print(metrics.classification_report(preds, yval))
+        print(f'Model Evaluation for {nm}- {round(score, 2) * 100}%')
+        print('AUC for Model-')
+        print(metrics.classification_report(preds, yval))
+        
+    except:
+        
+        print('Catastrophic Failure Detected! Run!!!')
     
