@@ -16,7 +16,7 @@ import time
 from datetime import date
 
 # List targets of interest
-tickers = ['BABA', 'CSTL', 'HLT', 'IEC', 'PYPL', 'PINS', 'UPLD', 'W', 'MSFT', 'SYK', 'AAPL', 'GOOGL', 'FCAU', 'IBM', 'USD', 'GLD', 'TMUS', 'T', 'S', 'CHTR']
+tickers = ['BABA', 'CSTL', 'HLT', 'IEC', 'PYPL', 'PINS', 'UPLD', 'W', 'MSFT', 'SYK', 'AAPL', 'GOOGL', 'FCAU', 'IBM', 'USD', 'GLD', 'TMUS', 'T', 'S', 'CHTR', 'CBRE']
 
 '''
     Parameters-
@@ -77,23 +77,28 @@ for symbol in tickers:
 
 predictions = pd.DataFrame()
 
+# Function to convert unix time
 def convert_date(x):
     
     return (x - pd.Timestamp("1970-01-01")) // pd.Timedelta('1s')
-    
+
+# Iterate to build models    
 for symbol in tickers:
     
     try:
         
+        # Fix dates
         dat = out.loc[out['ticker'] == symbol]
         dat['dt'] = [convert_date(i) for i in dat.index]
         dat.reset_index(drop = True)
         
         train = dat[:'2018']
         
+        # Model
         m = XGBClassifier(random_state = 100)
         m.fit(train[['dt', 'price']], train['pos'])
         
+        # Predict
         dat['pos_pred'] = m.predict(dat[['dt', 'price']])
   
         dat.iloc[0]['pos_pred'] = 1
@@ -106,7 +111,8 @@ for symbol in tickers:
         pass
 
 preds = pd.DataFrame()
-    
+
+# Build ledger    
 for nm, grp in predictions.groupby('ticker'):
 
     amount = 10000
@@ -152,3 +158,15 @@ for nm, grp in preds.groupby('ticker'):
     total = grp.iloc[-1]['total']
     
     returns += total
+    
+# Compare trajectories
+totals = out.groupby(out.index).agg({'total': 'sum'})
+predicted_totals = preds.groupby(preds.index).agg({'total': 'sum'})
+predicted_totals.index = totals.index
+
+fig, ax = plt.subplots(figsize = (10, 6))
+totals.plot(ax = ax, color = 'black', label = 'actual')
+predicted_totals.plot(color = 'green', label = 'predicted')
+plt.title('Stock Returns from Trading and Machine Learning')
+plt.xlabel('Date')
+plt.ylabel('$ (Cumulative)')
