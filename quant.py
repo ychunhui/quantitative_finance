@@ -10,7 +10,7 @@ Created on Tues Jan 22 08:24:58 2022
 import os
 os.chdir('/Users/operator/Documents/code/')
 from qc3 import *
-from xgboost import XGBClassifier
+from xgboost import XGBClassifier, XGBRegressor
 import time
 import datetime
 from sklearn import metrics
@@ -57,44 +57,40 @@ def computation_algorithm(data):
         
     return data
 
-# Function to perform analysismo
-def build_positions(x):
+def predcomps(data):
     
-    if x >= .03:
-        
-        return -1
-    
-    elif x <= -.03:
-        
-        return 1
-    
-    else:
-        
-        return 0
+    data.dropna(inplace = True)
 
-# Function to plot actions
-def plot_actions():
+    x = data.index
+
+    sells, props = find_peaks(data['pred_signal'], prominence = 1, wlen = 10)
+    buys, props = find_peaks(-data['pred_signal'], prominence = 1, wlen = 10) 
     
-    fig, ax = plt.subplots(figsize = (30, 15))
-    data['price'].plot(ax = ax, lw = 1, label = 'price')
-    data['signal'].plot(ax = ax, lw = 1, label = 'signal')
-    ax.scatter(data.loc[data['position'] == 1].index, data.loc[data['position'] == 1]['price'], marker = '^', s = 100, color = 'red', label = 'buy')
-    ax.scatter(data.loc[data['position'] == -1].index, data.loc[data['position'] == -1]['price'], marker = 'v', s = 100, color = 'green', label = 'sell')
-    plt.title('Plot of Price and Signal w/ Market Actions')
-    fig.legend(loc = 'upper right')
-    fig.tight_layout();
-        
-# Function to plot returns
-def plot_cumulative_returns():
+    positions = []
+
+    # Compute baseline trade actions based on signal
+    for idx, row in data.reset_index().iterrows():
+  
+        if idx in sells:
     
-    fig, ax = plt.subplots(figsize = (30, 15))
-    ledger['total'].plot(ax = ax, lw = 1, label = 'Cumulative Total')
-    ax.scatter(ledger.loc[ledger['pos'] == 1].index, ledger.loc[ledger['pos'] == 1]['total'], marker = '^', s = 100, color = 'red', label = 'buy')
-    ax.scatter(ledger.loc[ledger['pos'] == -1].index, ledger.loc[ledger['pos'] == -1]['total'], marker = 'v', s = 100, color = 'green', label = 'sell')
-    plt.title('Plot of Cumulative Returns')
-    fig.legend(loc = 'upper right')
-    fig.tight_layout();
+            positions.append(-1)
+  
+        elif idx in buys:
+    
+            positions.append(1)
+    
+        else:
+    
+            positions.append(0)
+    
+    positions[0] = 1
+    positions[-1] = -1
+
+    # Compute
+    data['pred_position'] = positions
         
+    return data
+
 # List targets of interest
 tickers = ['BABA', 'CSTL', 'HLT', 'IEC', 'PYPL', 'PINS', 'UPLD', 'W', 'MSFT', 'SYK', 'AAPL', 'GOOGL', 'FCAU', 'IBM', 'USD', 'GLD', 'TMUS', 'T', 'S', 'CHTR', 'CBRE', 'CHCLY']
 
@@ -139,28 +135,51 @@ for nm, grp in r1.groupby('ticker'):
     
     r2 = r2.append(grp1)
 
-# Initialize ledger
-trades = 0
-quant = 0
+r3 = pd.DataFrame()
+
+for nm, grp in r2.groupby('ticker'):
+    
+    grp.reset_index(inplace = True)
+    grp['dt'] = grp['Date'].apply(lambda x: (x - pd.Timestamp("1970-01-01")) // pd.Timedelta('1s'))
+    
+    r = XGBRegressor(random_state = 100)
+    r.fit(grp[['dt', 'price']], grp['signal'])
+    
+    grp['pred_signal'] = r.predict(grp[['dt', 'price']])
+    
+    r3 = r3.append(predcomps(grp))
+    
+r4 = predcomps(r3)
+
+#r4.loc[r4['position'] != r4['pred_position']][['price', 'position', 'pred_position']]
+
 ledger = pd.DataFrame()
 
 # Calculate trade activity
-for nm, grp in r2.groupby('ticker'):
-
-    date, price = grp.loc[grp['price'] != np.nan].index, grp.loc[grp['price'] != np.nan]['price']
+for nm, grp in r4.groupby('ticker'):
     
-    # Buy
+    # Initialize ledger
+    trades = 0
     amount =  10000
-    units = amount // grp['price'].loc[grp['price'] != np.nan]        
-    
-    for idx, row in grp.iterrows():
+    quant = 0
         
-        if row['position'] == 1:
+    ptrades = 0
+    pamount = 10000
+    pquant = 0
+        
+    # Buy
+    units = int(amount / price)
             
+    for idx, row in grp.iterrows():
+    
+        date, price = row['Date'], row['price']
+    
+        if row['position'] == 1:
+      
             amount -= (units * price) 
             quant += units
             trades += 1
-    
+        
         # Hold
         elif row['position'] == 0:
         
@@ -168,16 +187,45 @@ for nm, grp in r2.groupby('ticker'):
       
         # Sell
         elif row['position'] == -1:
-     
+      
             amount += (units * price)
             quant -= units
             trades += 1
+
+        if row['pred_position'] == 1:
       
+            pamount -= (units * price) 
+            pquant += units
+            ptrades += 1
+        
+        # Hold
+        elif row['pred_position'] == 0:
+        
+            pass
+      
+        # Sell
+        elif row['pred_position'] == -1:
+      
+            pamount += (units * price)
+            pquant -= units
+            ptrades += 1
+        
         ledger = ledger.append({'dt': date,
                                 'price': price,
                                 'pos': row['position'],
                                 'shares': quant,
                                 'num_trades': trades,
                                 'total': amount + (quant * price),
+                                'pred_pos': row['pred_position'],
+                                'pred_trades': ptrades,
+                                'pred_total': pamount + (pquant * price),
                                 'ticker': nm}, ignore_index = True)
-                
+        
+total = 0
+ptotal = 0
+
+for nm, grp in ledger.groupby('ticker'):
+    
+    total += grp['total'].iloc[-1]
+    ptotal += grp['pred_total'].iloc[-1]
+    
