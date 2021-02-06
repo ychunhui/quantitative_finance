@@ -117,11 +117,20 @@ plt.xlabel('Date')
 plt.ylabel('Returns ($ Millions)')
 plt.title('Cumulative Returns for Portfolio')   
     
+total = 0
+
+print(f'\nOverall Analysis: {totals.index[0]} - {totals.index[-1]}\n')
+
+for nm, grp in data.groupby('ticker'):
     
+    total += grp['total'].iloc[-1]
     
+    print(f"Final Total {nm}- ${grp['total'].iloc[-1]}")
     
-    
-    
-    
-    
-    
+print('\nTotal Investment $21,000')
+print(f'Final Total-     ${round(total, 2)}')
+
+
+
+
+
