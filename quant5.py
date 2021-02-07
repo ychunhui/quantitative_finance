@@ -17,7 +17,7 @@ portfolio = {}
 
 for ticker in tickers:
     
-    s = stock(tickers[0], '2000-01-01', '2021-02-01')
+    s = stock(ticker, '2000-01-01', '2021-02-01')
     portfolio[ticker] = s.data
     
 # Analyze
