@@ -17,8 +17,14 @@ portfolio = {}
 
 for ticker in tickers:
     
-    s = stock(ticker, '2000-01-01', '2021-02-01')
-    portfolio[ticker] = s.data
+    try:
+        
+        s = stock(ticker, '2000-01-01', '2021-02-01')
+        portfolio[ticker] = s.data
+        
+    except:
+        
+        print(f'No data retrieved for {ticker}..')
     
 # Analyze
 total = 0
