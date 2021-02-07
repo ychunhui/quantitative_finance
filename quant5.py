@@ -9,6 +9,7 @@ This is a temporary script file.
 import os
 os.chdir('/Users/operator/Documents/')
 from qf import *
+import matplotlib.pyplot as plt
 
 # List targets of interest
 tickers = ['AG', 'BABA', 'CSTL', 'HLT', 'IEC', 'PYPL', 'PINS', 'UPLD', 'W', 'MSFT', 'SYK', 'SCCO', 'AAPL', 'GOOGL', 'FCAU', 'IBM', 'USD', 'GLD', 'TMUS', 'T', 'S', 'CHTR', 'CBRE', 'CHCLY', 'SBUX']
@@ -33,5 +34,17 @@ for k, v in portfolio.items():
 print('\nTotal Investment $23,000')
 print(f'Final Total-     ${round(total, 2)}')
 
-    
+df = pd.DataFrame()
 
+for k, v in portfolio.items():
+
+    df = df.append(v)  
+
+# Plot
+totals = df.groupby('dt').agg({'total': 'sum'})
+
+fig, ax = plt.subplots(figsize = (10, 6))
+totals.plot(ax = ax, lw = 1)
+plt.xlabel('Date') 
+plt.ylabel('Returns ($ Millions)')
+plt.title('Cumulative Returns for Portfolio') 
